@@ -4,9 +4,9 @@ var sinon = require("sinon");
 chai.config.includeStack = true;
 var expect = chai.expect;
 
-var readability = require("../index");
-var Readability = readability.Readability;
-var JSDOMParser = readability.JSDOMParser;
+var Readability = require("../index").Readability;
+var JSDOMParser = require("../JSDOMParser");
+var prettyPrint = require("./utils").prettyPrint;
 
 var testPages = require("./utils").getTestPages();
 
@@ -118,8 +118,8 @@ function runTestsWithItems(label, domGenerationFn, source, expectedContent, expe
       }
 
 
-      var actualDOM = domGenerationFn(result.content);
-      var expectedDOM = domGenerationFn(expectedContent);
+      var actualDOM = domGenerationFn(prettyPrint(result.content));
+      var expectedDOM = domGenerationFn(prettyPrint(expectedContent));
       traverseDOM(function(actualNode, expectedNode) {
         if (actualNode && expectedNode) {
           var actualDesc = nodeStr(actualNode);
@@ -158,23 +158,23 @@ function runTestsWithItems(label, domGenerationFn, source, expectedContent, expe
     });
 
     it("should extract expected title", function() {
-      expect(expectedMetadata.title).eql(result.title);
+      expect(result.title).eql(expectedMetadata.title);
     });
 
     it("should extract expected byline", function() {
-      expect(expectedMetadata.byline).eql(result.byline);
+      expect(result.byline).eql(expectedMetadata.byline);
     });
 
     it("should extract expected excerpt", function() {
-      expect(expectedMetadata.excerpt).eql(result.excerpt);
+      expect(result.excerpt).eql(expectedMetadata.excerpt);
     });
 
     it("should extract expected site name", function() {
-      expect(expectedMetadata.siteName).eql(result.siteName);
+      expect(result.siteName).eql(expectedMetadata.siteName);
     });
 
     expectedMetadata.dir && it("should extract expected direction", function() {
-      expect(expectedMetadata.dir).eql(result.dir);
+      expect(result.dir).eql(expectedMetadata.dir);
     });
   });
 }
@@ -258,6 +258,17 @@ describe("Readability API", function() {
       expect(parser._cleanClasses.called).eql(false);
     });
 
+    it("should use custom content serializer sent as option", function() {
+      var dom = new JSDOM("My cat: <img src=''>");
+      var expected_xhtml = "<div xmlns=\"http://www.w3.org/1999/xhtml\" id=\"readability-page-1\" class=\"page\">My cat: <img src=\"\" /></div>";
+      var xml = new dom.window.XMLSerializer();
+      var content = new Readability(dom.window.document, {
+        serializer: function(el) {
+          return xml.serializeToString(el.firstChild);
+        }
+      }).parse().content;
+      expect(content).eql(expected_xhtml);
+    });
   });
 });
 
